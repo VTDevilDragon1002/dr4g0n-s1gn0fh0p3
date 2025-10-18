@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hand Sign Recognition — Browser Version</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle at center, #1e1e1e, #000);
+      color: white;
+      font-family: "Inter", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    video {
+      transform: scaleX(-1);
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+      width: 640px;
+      height: 480px;
+    }
+    canvas {
+      position: absolute;
+      transform: scaleX(-1);
+    }
+    #emoji {
+      font-size: 6rem;
+      margin-top: 1rem;
+      transition: transform 0.3s ease;
+    }
+    #emoji.animate {
+      transform: scale(1.3);
+    }
+    #label {
+      font-size: 1.5rem;
+      margin-top: 0.5rem;
+      color: #00ffcc;
+    }
+  </style>
+</head>
+<body>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="output"></canvas>
+  <div id="emoji">✋</div>
+  <div id="label">Waiting for hand...</div>
+
+  <!-- MediaPipe Hands + Camera Utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("output");
+    const ctx = canvas.getContext("2d");
+    const emojiDiv = document.getElementById("emoji");
+    const labelDiv = document.getElementById("label");
+
+    // Resize canvas to match video
+    video.addEventListener("loadedmetadata", () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    });
+
+    function getEmojiForFingers(count) {
+      const mapping = {
+        0: "🤚",  // closed hand
+        1: "☝️",  // one finger
+        2: "✌️",  // two fingers
+        3: "👌",  // three fingers
+        4: "🤙",  // four fingers
+        5: "🖐️"   // open hand
+      };
+      return mapping[count] || "✋";
+    }
+
+    function countFingers(landmarks) {
+      // Use relative Y positions to estimate open fingers
+      const fingerTips = [8, 12, 16, 20];
+      const fingerPips = [6, 10, 14, 18];
+      let count = 0;
+
+      for (let i = 0; i < 4; i++) {
+        if (landmarks[fingerTips[i]].y < landmarks[fingerPips[i]].y) count++;
+      }
+
+      // Thumb check (x instead of y)
+      const thumbTip = landmarks[4];
+      const thumbIp = landmarks[3];
+      if (thumbTip.x > thumbIp.x) count++;
+
+      return count;
+    }
+
+    const hands = new Hands({
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+    });
+
+    hands.setOptions({
+      maxNumHands: 1,
+      minDetectionConfidence: 0.7,
+      minTrackingConfidence: 0.7,
+    });
+
+    hands.onResults((results) => {
+      ctx.save();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+
+      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        for (const landmarks of results.multiHandLandmarks) {
+          drawConnectors(ctx, landmarks, HAND_CONNECTIONS, { color: "#00FF00", lineWidth: 2 });
+          drawLandmarks(ctx, landmarks, { color: "#FF0000", lineWidth: 1 });
+
+          const fingers = countFingers(landmarks);
+          const emoji = getEmojiForFingers(fingers);
+          emojiDiv.textContent = emoji;
+          labelDiv.textContent = `Detected: ${fingers} finger${fingers !== 1 ? "s" : ""}`;
+
+          emojiDiv.classList.add("animate");
+          setTimeout(() => emojiDiv.classList.remove("animate"), 300);
+        }
+      } else {
+        labelDiv.textContent = "Waiting for hand...";
+        emojiDiv.textContent = "✋";
+      }
+
+      ctx.restore();
+    });
+
+    // Start webcam
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+
+      const camera = new Camera(video, {
+        onFrame: async () => {
+          await hands.send({ image: video });
+        },
+        width: 640,
+        height: 480,
+      });
+      camera.start();
+    }
+
+    startCamera();
+  </script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blind Page</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap');
+
+  :root {
+    --bg-color: #ff3b3b;    /* bright red background */
+    --btn-color: #8b0000;   /* dark red button */
+    --btn-hover: #b20000;   /* slightly lighter on hover */
+    --btn-text: #fff;
+  }
+
+  * { box-sizing: border-box; margin:0; padding:0; font-family:'Poppins', sans-serif; }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--btn-text);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    overflow: hidden;
+  }
+
+  #textContainer {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    text-align: center;
+    padding: 20px;
+    animation: fadeInText 1s ease forwards;
+  }
+
+  /* Extra-large dark red button with glow and arrive animation */
+  #movementBtn {
+    background-color: var(--btn-color);
+    color: var(--btn-text);
+    border: none;
+    border-radius: 25px;
+    width: 400px;
+    height: 160px;
+    font-size: 2.5rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+    margin-bottom: 30px;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+    animation: arrive 1s ease forwards;
+    opacity: 0;
+    text-shadow: 0 0 8px #fff;
+  }
+
+  /* Glow effect on hover */
+  #movementBtn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 0 35px #ff7b7b, 0 16px 35px rgba(0,0,0,0.7);
+    background-color: var(--btn-hover);
+  }
+
+  /* Clicking effect */
+  #movementBtn:active {
+    transform: translateY(4px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.6);
+  }
+
+  @keyframes arrive {
+    0% {opacity:0; transform: translateY(80px) scale(0.8);}
+    60% {opacity:1; transform: translateY(-10px) scale(1.05);}
+    100% {opacity:1; transform: translateY(0) scale(1);}
+  }
+
+  @keyframes fadeInText {
+    0% {opacity:0; transform: translateY(-20px);}
+    100% {opacity:1; transform: translateY(0);}
+  }
+
+  /* Responsive for smaller screens */
+  @media (max-width:500px){
+    #movementBtn { width:90%; height:140px; font-size:2rem; }
+    #textContainer { font-size:1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="textContainer" aria-live="polite">
+  Welcome! Press the big Movement button below to continue.
+</div>
+
+<button id="movementBtn" aria-label="Go to Movement Page">Movement</button>
+
+<script>
+  // Text-to-Speech
+  const backendText = "Welcome! Press the big Movement button below to continue.";
+  const textContainer = document.getElementById('textContainer');
+  textContainer.textContent = backendText;
+
+  function speakText(text){
+    if('speechSynthesis' in window){
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utterance);
+    }
+  }
+
+  // Auto-read text
+  speakText(backendText);
+
+  // Movement button click: go to movement.html
+  const movementBtn = document.getElementById('movementBtn');
+  movementBtn.addEventListener('click', ()=>{
+    window.location.href = "movement.html"; // Navigate to movement.html
+  });
+
+  // Optional vibration feedback
+  movementBtn.addEventListener('click', ()=>{
+    if(navigator.vibrate) navigator.vibrate(150);
+  });
+</script>
+
+</body>
+</html>
